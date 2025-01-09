@@ -1,11 +1,17 @@
-import React from "react";
+import React, { ReactNode } from "react";
 
-const Modal = ({ isOpen, onClose, children }: any) => {
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}
+
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
   if (!isOpen) return null;
 
   return (
     <div
-      onSubmit={onClose}
+      onClick={onClose}
       style={{
         position: "fixed",
         top: 0,
@@ -27,6 +33,7 @@ const Modal = ({ isOpen, onClose, children }: any) => {
           borderRadius: "10px",
           boxShadow: "2px solid black",
         }}
+        onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside modal
       >
         {children}
       </div>

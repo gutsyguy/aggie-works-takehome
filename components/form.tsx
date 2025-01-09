@@ -3,69 +3,30 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 
 const ContactForm = () => {
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [name, setName] = useState("");
-  const [subject, setSubject] = useState("");
+  const [email, setEmail] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
+  const [name, setName] = useState<string>("");
+  const [subject, setSubject] = useState<string>("");
 
-  const handleMessageChange = (e: ChangeEvent<any>) => {
-    const inputValue = e.target.value;
-    setMessage(inputValue);
+  const handleMessageChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
   };
 
-  const handleEmailChange = (e: ChangeEvent<any>) => {
-    const inputValue = e.target.value;
-    setEmail(inputValue);
+  const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
   };
 
-  const handleNameChange = (e: ChangeEvent<any>) => {
-    const inputValue = e.target.value;
-    setName(inputValue);
+  const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
   };
 
-  const handleSubjectChange = (e: ChangeEvent<any>) => {
-    const inputValue = e.target.value;
-    setSubject(inputValue);
+  const handleSubjectChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSubject(e.target.value);
   };
-
-  const sendEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const data = {
-      name,
-      email,
-      subject,
-      message,
-    };
-
-    console.log("Sending data:", data);
-
-    const res = await fetch("/api/contact", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (res.ok) {
-      console.log("Email sent successfully");
-      setName("");
-      setEmail("");
-      setSubject("");
-      setMessage("");
-    } else {
-      console.error("Failed to send email");
-    }
-  };
-
-  useEffect(() => {
-    AOS.init();
-  }, []);
 
   return (
     <div
-      className="flex justify-center items-center h-screen text-white  "
+      className="flex justify-center items-center h-screen text-white"
       data-te-animation-init
       data-te-animation-start="onScroll"
       data-te-animation-on-scroll="repeat"
@@ -73,10 +34,7 @@ const ContactForm = () => {
       data-te-animation="[slide-right_1s_ease-in-out]"
       data-aos="zoom-out"
     >
-      <form
-        className="w-full max-w-[90%] mx-auto bg-red-400 rounded-xl p-8 border border-gray-700"
-        onSubmit={sendEmail}
-      >
+      <form className="w-full max-w-[90%] mx-auto bg-red-400 rounded-xl p-8 border border-gray-700">
         <h1 className="text-3xl font-bold text-center mb-6">Contact Me</h1>
         <div className="mb-4">
           <label htmlFor="name" className="block mb-2">
