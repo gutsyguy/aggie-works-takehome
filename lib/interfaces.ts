@@ -4,8 +4,9 @@ export enum Type{
 }
 
 export interface Item {
+    id: string;
     item: string,
-    quantity: Number,
+    quantity: number,
     type: Type
 
 }

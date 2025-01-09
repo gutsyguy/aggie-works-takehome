@@ -11,35 +11,37 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import Modal from "@/components/modal";
-import { Item } from "@/lib/interfaces";
+import { Item } from "@/lib/interfaces"; // Assuming `Item` is an interface like below:
+// interface Item {
+//   id: string;
+//   item: string;
+//   quantity: number;
+//   type: string;
+// }
 
 export default function Home() {
-  const [inventory, setInventory] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
-  const [openRemove, setOpenRemove] = useState(false);
+  const [inventory, setInventory] = useState<Item[]>([]);
+  const [open, setOpen] = useState<boolean>(false);
+  const [openRemove, setOpenRemove] = useState<boolean>(false);
   const [item, setItem] = useState<string>("");
   const [itemType, setItemType] = useState<string>("");
   const [itemQuantity, setItemQuantity] = useState<number | "">("");
   const [search, setSearch] = useState<string>("");
 
-  const updateInventory = async () => {
+  const updateInventory = async (): Promise<void> => {
     const snapshot = query(collection(db, "inventory"));
     const docs = await getDocs(snapshot);
-    const inventoryList: any[] = [];
-    docs.forEach((doc) => {
-      const data = doc.data();
-      inventoryList.push({
-        id: doc.id,
-        item: data.item,
-        quantity: data.quantity,
-        type: data.type,
-      });
-    });
+    const inventoryList: Item[] = docs.docs.map((doc) => ({
+      id: doc.id,
+      item: doc.data().item,
+      quantity: doc.data().quantity,
+      type: doc.data().type,
+    }));
     setInventory(inventoryList);
   };
 
-  const addItem = async () => {
-    if (!item || !itemType || !itemQuantity) {
+  const addItem = async (): Promise<void> => {
+    if (!item || !itemType || itemQuantity === "") {
       alert("Please fill out all fields.");
       return;
     }
@@ -48,7 +50,7 @@ export default function Home() {
 
     if (existingItemDoc) {
       const docRef = doc(db, "inventory", existingItemDoc.id);
-      const newQuantity = existingItemDoc.quantity + itemQuantity;
+      const newQuantity = existingItemDoc.quantity + (itemQuantity as number);
       await updateDoc(docRef, { item, quantity: newQuantity, type: itemType });
     } else {
       const docRef = doc(collection(db, "inventory"));
@@ -60,8 +62,8 @@ export default function Home() {
     resetFormFields();
   };
 
-  const removeItem = async () => {
-    if (!item || !itemQuantity) {
+  const removeItem = async (): Promise<void> => {
+    if (!item || itemQuantity === "") {
       alert("Please fill out all fields.");
       return;
     }
@@ -75,10 +77,10 @@ export default function Home() {
 
     const docRef = doc(db, "inventory", existingItemDoc.id);
 
-    if (existingItemDoc.quantity <= itemQuantity) {
+    if (existingItemDoc.quantity <= (itemQuantity as number)) {
       await deleteDoc(docRef);
     } else {
-      const newQuantity = existingItemDoc.quantity - itemQuantity;
+      const newQuantity = existingItemDoc.quantity - (itemQuantity as number);
       await updateDoc(docRef, { quantity: newQuantity });
     }
 
@@ -87,25 +89,26 @@ export default function Home() {
     resetFormFields();
   };
 
-  const resetFormFields = () => {
+  const resetFormFields = (): void => {
     setItem("");
     setItemType("");
     setItemQuantity("");
   };
 
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => {
+  const handleOpen = (): void => setOpen(true);
+  const handleClose = (): void => {
     setOpen(false);
     resetFormFields();
   };
 
-  const handleRemoveOpen = () => setOpenRemove(true);
-  const handleRemoveClose = () => {
+  const handleRemoveOpen = (): void => setOpenRemove(true);
+  const handleRemoveClose = (): void => {
     setOpenRemove(false);
     resetFormFields();
   };
 
-  const searchItem = (e: any) => setSearch(e.target.value);
+  const searchItem = (e: React.ChangeEvent<HTMLInputElement>): void =>
+    setSearch(e.target.value);
 
   useEffect(() => {
     updateInventory();
@@ -128,7 +131,6 @@ export default function Home() {
           >
             Add Item
           </button>
-
           <button
             className="bg-blue-400 px-[1rem] rounded-xl"
             onClick={handleRemoveOpen}
@@ -149,20 +151,20 @@ export default function Home() {
         <div className="flex flex-row justify-evenly text-[2rem]">
           <div className="flex flex-col text-center">
             <h1>Item</h1>
-            {filteredInventory.map((entry, index) => (
-              <h2 key={index}>{entry.item}</h2>
+            {filteredInventory.map((entry) => (
+              <h2 key={entry.id}>{entry.item}</h2>
             ))}
           </div>
           <div className="flex flex-col text-center">
             <h1>Quantity</h1>
-            {filteredInventory.map((entry, index) => (
-              <h2 key={index}>{entry.quantity}</h2>
+            {filteredInventory.map((entry) => (
+              <h2 key={entry.id}>{entry.quantity}</h2>
             ))}
           </div>
           <div className="flex flex-col text-center">
             <h1>Type</h1>
-            {filteredInventory.map((entry, index) => (
-              <h2 key={index}>{entry.type}</h2>
+            {filteredInventory.map((entry) => (
+              <h2 key={entry.id}>{entry.type}</h2>
             ))}
           </div>
         </div>
