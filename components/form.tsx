@@ -1,5 +1,4 @@
-import React, { ChangeEvent, useEffect, useState } from "react";
-import AOS from "aos";
+import React, { ChangeEvent, useState } from "react";
 import "aos/dist/aos.css";
 
 const ContactForm = () => {
