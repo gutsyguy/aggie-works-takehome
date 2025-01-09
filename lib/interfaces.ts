@@ -4,7 +4,7 @@ export enum Type{
 }
 
 export interface Item {
-    item: String,
+    item: string,
     quantity: Number,
     type: Type
 
