@@ -11,6 +11,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import Modal from "@/components/modal";
+import { Item } from "@/lib/interfaces";
 
 export default function Home() {
   const [inventory, setInventory] = useState<any[]>([]);

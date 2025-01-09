@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { ChangeEvent, useEffect, useState } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
 
@@ -8,23 +8,23 @@ const ContactForm = () => {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
 
-  const handleMessageChange = (e: any) => {
-    let inputValue = e.target.value;
+  const handleMessageChange = (e: ChangeEvent<any>) => {
+    const inputValue = e.target.value;
     setMessage(inputValue);
   };
 
-  const handleEmailChange = (e: any) => {
-    let inputValue = e.target.value;
+  const handleEmailChange = (e: ChangeEvent<any>) => {
+    const inputValue = e.target.value;
     setEmail(inputValue);
   };
 
-  const handleNameChange = (e: any) => {
-    let inputValue = e.target.value;
+  const handleNameChange = (e: ChangeEvent<any>) => {
+    const inputValue = e.target.value;
     setName(inputValue);
   };
 
-  const handleSubjectChange = (e: any) => {
-    let inputValue = e.target.value;
+  const handleSubjectChange = (e: ChangeEvent<any>) => {
+    const inputValue = e.target.value;
     setSubject(inputValue);
   };
 
