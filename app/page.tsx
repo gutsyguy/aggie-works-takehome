@@ -53,7 +53,7 @@ export default function Home() {
   };
 
   const validateForm = (): boolean => {
-    const { item, type, quantity } = formData;
+    const { item, quantity } = formData;
     if (!item || quantity === "") {
       alert("Please fill out all fields.");
       return false;
