@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, ChangeEvent } from "react";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -11,222 +11,204 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import Modal from "@/components/modal";
-import { Item } from "@/lib/interfaces"; 
-
+import { Item } from "@/lib/interfaces";
 
 export default function Home() {
   const [inventory, setInventory] = useState<Item[]>([]);
-  const [open, setOpen] = useState<boolean>(false);
-  const [openRemove, setOpenRemove] = useState<boolean>(false);
-  const [item, setItem] = useState<string>("");
-  const [itemType, setItemType] = useState<string>("");
-  const [itemQuantity, setItemQuantity] = useState<number | "">("");
-  const [search, setSearch] = useState<string>("");
+  const [isAddModalOpen, setAddModalOpen] = useState(false);
+  const [isRemoveModalOpen, setRemoveModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    item: "",
+    type: "",
+    quantity: "" as number | "",
+  });
+  const [search, setSearch] = useState("");
 
-  const updateInventory = async (): Promise<void> => {
+  const handleFormChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const resetForm = () => {
+    setFormData({ item: "", type: "", quantity: "" });
+  };
+
+  const updateInventory = async () => {
     const snapshot = query(collection(db, "inventory"));
     const docs = await getDocs(snapshot);
-    const inventoryList: Item[] = docs.docs.map((doc) => ({
+    const inventoryList = docs.docs.map((doc) => ({
       id: doc.id,
-      item: doc.data().item,
-      quantity: doc.data().quantity,
-      type: doc.data().type,
-    }));
+      ...doc.data(),
+    })) as Item[];
     setInventory(inventoryList);
   };
 
-  const addItem = async (): Promise<void> => {
-    if (!item || !itemType || itemQuantity === "") {
-      alert("Please fill out all fields.");
+  const validateForm = (): boolean => {
+    const { item, type, quantity } = formData;
+    if (!item || !type || quantity === "") {
+      alert("All fields are required.");
+      return false;
+    }
+    return true;
+  };
+
+  const addItem = async () => {
+    if (!validateForm()) return;
+
+    const { item, type, quantity } = formData;
+    const existingItem = inventory.find((entry) => entry.item === item);
+
+    try {
+      if (existingItem) {
+        const docRef = doc(db, "inventory", existingItem.id);
+        await updateDoc(docRef, {
+          quantity: existingItem.quantity + Number(quantity),
+          type,
+        });
+      } else {
+        const docRef = doc(collection(db, "inventory"));
+        await setDoc(docRef, { item, quantity: Number(quantity), type });
+      }
+      await updateInventory();
+      setAddModalOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error adding item:", error);
+    }
+  };
+
+  const removeItem = async () => {
+    if (!validateForm()) return;
+
+    const { item, quantity } = formData;
+    const existingItem = inventory.find((entry) => entry.item === item);
+
+    if (!existingItem) {
+      alert("Item not found.");
       return;
     }
 
-    const existingItemDoc = inventory.find((entry) => entry.item === item);
-
-    if (existingItemDoc) {
-      const docRef = doc(db, "inventory", existingItemDoc.id);
-      const newQuantity = existingItemDoc.quantity + (itemQuantity as number);
-      await updateDoc(docRef, { item, quantity: newQuantity, type: itemType });
-    } else {
-      const docRef = doc(collection(db, "inventory"));
-      await setDoc(docRef, { item, quantity: itemQuantity, type: itemType });
+    try {
+      const docRef = doc(db, "inventory", existingItem.id);
+      if (existingItem.quantity <= Number(quantity)) {
+        await deleteDoc(docRef);
+      } else {
+        await updateDoc(docRef, {
+          quantity: existingItem.quantity - Number(quantity),
+        });
+      }
+      await updateInventory();
+      setRemoveModalOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error removing item:", error);
     }
-
-    await updateInventory();
-    setOpen(false);
-    resetFormFields();
   };
-
-  const removeItem = async (): Promise<void> => {
-    if (!item || itemQuantity === "") {
-      alert("Please fill out all fields.");
-      return;
-    }
-
-    const existingItemDoc = inventory.find((entry) => entry.item === item);
-
-    if (!existingItemDoc) {
-      alert("Item not found in inventory.");
-      return;
-    }
-
-    const docRef = doc(db, "inventory", existingItemDoc.id);
-
-    if (existingItemDoc.quantity <= (itemQuantity as number)) {
-      await deleteDoc(docRef);
-    } else {
-      const newQuantity = existingItemDoc.quantity - (itemQuantity as number);
-      await updateDoc(docRef, { quantity: newQuantity });
-    }
-
-    await updateInventory();
-    setOpenRemove(false);
-    resetFormFields();
-  };
-
-  const resetFormFields = (): void => {
-    setItem("");
-    setItemType("");
-    setItemQuantity("");
-  };
-
-  const handleOpen = (): void => setOpen(true);
-  const handleClose = (): void => {
-    setOpen(false);
-    resetFormFields();
-  };
-
-  const handleRemoveOpen = (): void => setOpenRemove(true);
-  const handleRemoveClose = (): void => {
-    setOpenRemove(false);
-    resetFormFields();
-  };
-
-  const searchItem = (e: React.ChangeEvent<HTMLInputElement>): void =>
-    setSearch(e.target.value);
-
-  useEffect(() => {
-    updateInventory();
-  }, []);
 
   const filteredInventory = inventory.filter((entry) =>
     entry.item.toLowerCase().includes(search.toLowerCase())
   );
 
+  useEffect(() => {
+    updateInventory();
+  }, []);
+
   return (
     <div>
-      <div className="text-black mx-[10rem] border border-black">
-        <h1 className="bg-blue-200 text-center text-[3rem] border border-black">
-          Inventory List
-        </h1>
-        <div className="flex flex-row justify-evenly text-[2rem] border border-black text-white">
-          <button
-            className="bg-blue-400 px-[1rem] rounded-xl"
-            onClick={handleOpen}
-          >
-            Add Item
-          </button>
-          <button
-            className="bg-blue-400 px-[1rem] rounded-xl"
-            onClick={handleRemoveOpen}
-          >
-            Remove Item
-          </button>
-          <form className="border border-black text-black">
-            <input
-              type="text"
-              value={search}
-              placeholder="Search items"
-              onChange={searchItem}
-              className="p-[0.5rem]"
-            />
-          </form>
-        </div>
+      <header className="bg-blue-200 text-center text-3xl font-bold py-4">
+        Inventory Management
+      </header>
 
-        <div className="flex flex-row justify-evenly text-[2rem]">
-          <div className="flex flex-col text-center">
-            <h1>Item</h1>
-            {filteredInventory.map((entry) => (
-              <h2 key={entry.id}>{entry.item}</h2>
-            ))}
-          </div>
-          <div className="flex flex-col text-center">
-            <h1>Quantity</h1>
-            {filteredInventory.map((entry) => (
-              <h2 key={entry.id}>{entry.quantity}</h2>
-            ))}
-          </div>
-          <div className="flex flex-col text-center">
-            <h1>Type</h1>
-            {filteredInventory.map((entry) => (
-              <h2 key={entry.id}>{entry.type}</h2>
-            ))}
-          </div>
-        </div>
-
-        <Modal isOpen={open} onClose={handleClose}>
-          <>
-            <h1 className="text-[2rem] mb-[1rem]">Add Items</h1>
-            <div className="flex flex-col space-y-[1rem]">
-              <input
-                type="text"
-                value={item}
-                placeholder="Item Name"
-                onChange={(e) => setItem(e.target.value)}
-                className="p-[0.5rem] border border-gray-300"
-              />
-              <input
-                type="number"
-                value={itemQuantity}
-                placeholder="Quantity"
-                onChange={(e) => setItemQuantity(Number(e.target.value))}
-                className="p-[0.5rem] border border-gray-300"
-              />
-              <input
-                type="text"
-                value={itemType}
-                placeholder="Item Type"
-                onChange={(e) => setItemType(e.target.value)}
-                className="p-[0.5rem] border border-gray-300"
-              />
-              <button
-                className="bg-blue-400 px-[1rem] my-[1rem] rounded-xl text-[1.5rem]"
-                onClick={addItem}
-              >
-                Add Item
-              </button>
-            </div>
-          </>
-        </Modal>
-
-        <Modal isOpen={openRemove} onClose={handleRemoveClose}>
-          <>
-            <h1 className="text-[2rem] mb-[1rem]">Remove Items</h1>
-            <div className="flex flex-col space-y-[1rem]">
-              <input
-                type="text"
-                value={item}
-                placeholder="Item Name"
-                onChange={(e) => setItem(e.target.value)}
-                className="p-[0.5rem] border border-gray-300"
-              />
-              <input
-                type="number"
-                value={itemQuantity}
-                placeholder="Quantity"
-                onChange={(e) => setItemQuantity(Number(e.target.value))}
-                className="p-[0.5rem] border border-gray-300"
-              />
-              <button
-                className="bg-blue-400 px-[1rem] my-[1rem] rounded-xl text-[1.5rem]"
-                onClick={removeItem}
-              >
-                Remove Item
-              </button>
-            </div>
-          </>
-        </Modal>
+      <div className="flex justify-between px-10 py-4">
+        <button className="btn" onClick={() => setAddModalOpen(true)}>
+          Add Item
+        </button>
+        <button className="btn" onClick={() => setRemoveModalOpen(true)}>
+          Remove Item
+        </button>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search items..."
+          className="input"
+        />
       </div>
+
+      <div className="grid grid-cols-3 gap-4 px-10">
+        <div>
+          <h2>Item</h2>
+          {filteredInventory.map((entry) => (
+            <p key={entry.id}>{entry.item}</p>
+          ))}
+        </div>
+        <div>
+          <h2>Quantity</h2>
+          {filteredInventory.map((entry) => (
+            <p key={entry.id}>{entry.quantity}</p>
+          ))}
+        </div>
+        <div>
+          <h2>Type</h2>
+          {filteredInventory.map((entry) => (
+            <p key={entry.id}>{entry.type}</p>
+          ))}
+        </div>
+      </div>
+
+      <Modal isOpen={isAddModalOpen} onClose={() => setAddModalOpen(false)}>
+        <h2>Add Item</h2>
+        <input
+          name="item"
+          value={formData.item}
+          onChange={handleFormChange}
+          placeholder="Item Name"
+          className="input"
+        />
+        <input
+          name="quantity"
+          value={formData.quantity}
+          onChange={handleFormChange}
+          placeholder="Quantity"
+          className="input"
+          type="number"
+        />
+        <input
+          name="type"
+          value={formData.type}
+          onChange={handleFormChange}
+          placeholder="Item Type"
+          className="input"
+        />
+        <button onClick={addItem} className="btn">
+          Save
+        </button>
+      </Modal>
+
+      <Modal
+        isOpen={isRemoveModalOpen}
+        onClose={() => setRemoveModalOpen(false)}
+      >
+        <h2>Remove Item</h2>
+        <input
+          name="item"
+          value={formData.item}
+          onChange={handleFormChange}
+          placeholder="Item Name"
+          className="input"
+        />
+        <input
+          name="quantity"
+          value={formData.quantity}
+          onChange={handleFormChange}
+          placeholder="Quantity"
+          className="input"
+          type="number"
+        />
+        <button onClick={removeItem} className="btn">
+          Remove
+        </button>
+      </Modal>
     </div>
   );
 }
