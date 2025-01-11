@@ -7,6 +7,6 @@ export interface Item {
     id: string;
     item: string,
     quantity: number,
-    type: Type
+    type:string 
 
 }
