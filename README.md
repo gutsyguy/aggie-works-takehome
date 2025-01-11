@@ -45,27 +45,20 @@ A Firebase project configured with Firestore.
 Steps
 Clone the repository:
 
-bash
-
-Copy code
 git clone https://github.com/your-repo/inventory-management.git
 cd inventory-management
 
-<button onclick="navigator.clipboard.writeText('git clone https://github.com/your-repo/inventory-management.git\ncd inventory-management')">Copy</button>
 
 Install dependencies:
 
 npm install
 Set up Firebase:
 
-<button onclick="navigator.clipboard.writeText('npm install')">Copy</button>
 
 Replace Firebase configuration in @/lib/firebase with your project details.
 Start the development server:
 
 npm run dev
-
-<button onclick="navigator.clipboard.writeText('npm run dev')">Copy</button>
 
 Adding Items
 Click "Add Item".
