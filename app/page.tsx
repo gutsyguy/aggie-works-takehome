@@ -15,8 +15,8 @@ import { Item } from "@/lib/interfaces";
 
 export default function Home() {
   const [inventory, setInventory] = useState<Item[]>([]);
-  const [isAddModalOpen, setAddModalOpen] = useState(false);
-  const [isRemoveModalOpen, setRemoveModalOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [openRemove, setOpenRemove] = useState(false);
   const [formData, setFormData] = useState({
     item: "",
     type: "",
@@ -24,35 +24,44 @@ export default function Home() {
   });
   const [search, setSearch] = useState("");
 
-  const handleFormChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const resetForm = () => {
+  const resetFormFields = (): void => {
     setFormData({ item: "", type: "", quantity: "" });
   };
 
-  const updateInventory = async () => {
-    const snapshot = query(collection(db, "inventory"));
-    const docs = await getDocs(snapshot);
-    const inventoryList = docs.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Item[];
-    setInventory(inventoryList);
+  const handleFormChange = (e: ChangeEvent<HTMLInputElement>): void => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "quantity" ? Number(value) : value,
+    }));
+  };
+
+  const updateInventory = async (): Promise<void> => {
+    try {
+      const snapshot = query(collection(db, "inventory"));
+      const docs = await getDocs(snapshot);
+      const inventoryList: Item[] = docs.docs.map((doc) => ({
+        id: doc.id,
+        item: doc.data().item,
+        quantity: doc.data().quantity,
+        type: doc.data().type,
+      }));
+      setInventory(inventoryList);
+    } catch (error) {
+      console.error("Error fetching inventory:", error);
+    }
   };
 
   const validateForm = (): boolean => {
     const { item, type, quantity } = formData;
     if (!item || !type || quantity === "") {
-      alert("All fields are required.");
+      alert("Please fill out all fields.");
       return false;
     }
     return true;
   };
 
-  const addItem = async () => {
+  const addItem = async (): Promise<void> => {
     if (!validateForm()) return;
 
     const { item, type, quantity } = formData;
@@ -70,21 +79,21 @@ export default function Home() {
         await setDoc(docRef, { item, quantity: Number(quantity), type });
       }
       await updateInventory();
-      setAddModalOpen(false);
-      resetForm();
+      setOpen(false);
+      resetFormFields();
     } catch (error) {
       console.error("Error adding item:", error);
     }
   };
 
-  const removeItem = async () => {
+  const removeItem = async (): Promise<void> => {
     if (!validateForm()) return;
 
     const { item, quantity } = formData;
     const existingItem = inventory.find((entry) => entry.item === item);
 
     if (!existingItem) {
-      alert("Item not found.");
+      alert("Item not found in inventory.");
       return;
     }
 
@@ -98,8 +107,8 @@ export default function Home() {
         });
       }
       await updateInventory();
-      setRemoveModalOpen(false);
-      resetForm();
+      setOpenRemove(false);
+      resetFormFields();
     } catch (error) {
       console.error("Error removing item:", error);
     }
@@ -115,100 +124,123 @@ export default function Home() {
 
   return (
     <div>
-      <header className="bg-blue-200 text-center text-3xl font-bold py-4">
-        Inventory Management
-      </header>
+      <div className="text-black mx-[10rem] border border-black">
+        <h1 className="bg-blue-200 text-center text-[3rem] border border-black">
+          Inventory List
+        </h1>
+        <div className="flex flex-row justify-evenly text-[2rem] border border-black text-white">
+          <button
+            className="bg-blue-400 px-[1rem] rounded-xl"
+            onClick={() => setOpen(true)}
+          >
+            Add Item
+          </button>
+          <button
+            className="bg-blue-400 px-[1rem] rounded-xl"
+            onClick={() => setOpenRemove(true)}
+          >
+            Remove Item
+          </button>
+          <form className="border border-black text-black">
+            <input
+              type="text"
+              value={search}
+              placeholder="Search items"
+              onChange={(e) => setSearch(e.target.value)}
+              className="p-[0.5rem]"
+            />
+          </form>
+        </div>
 
-      <div className="flex justify-between px-10 py-4">
-        <button className="btn" onClick={() => setAddModalOpen(true)}>
-          Add Item
-        </button>
-        <button className="btn" onClick={() => setRemoveModalOpen(true)}>
-          Remove Item
-        </button>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search items..."
-          className="input"
-        />
+        <div className="flex flex-row justify-evenly text-[2rem]">
+          <div className="flex flex-col text-center">
+            <h1>Item</h1>
+            {filteredInventory.map((entry) => (
+              <h2 key={entry.id}>{entry.item}</h2>
+            ))}
+          </div>
+          <div className="flex flex-col text-center">
+            <h1>Quantity</h1>
+            {filteredInventory.map((entry) => (
+              <h2 key={entry.id}>{entry.quantity}</h2>
+            ))}
+          </div>
+          <div className="flex flex-col text-center">
+            <h1>Type</h1>
+            {filteredInventory.map((entry) => (
+              <h2 key={entry.id}>{entry.type}</h2>
+            ))}
+          </div>
+        </div>
+
+        <Modal isOpen={open} onClose={() => setOpen(false)}>
+          <>
+            <h1 className="text-[2rem] mb-[1rem]">Add Items</h1>
+            <div className="flex flex-col space-y-[1rem]">
+              <input
+                name="item"
+                type="text"
+                value={formData.item}
+                placeholder="Item Name"
+                onChange={handleFormChange}
+                className="p-[0.5rem] border border-gray-300"
+              />
+              <input
+                name="quantity"
+                type="number"
+                value={formData.quantity}
+                placeholder="Quantity"
+                onChange={handleFormChange}
+                className="p-[0.5rem] border border-gray-300"
+              />
+              <input
+                name="type"
+                type="text"
+                value={formData.type}
+                placeholder="Item Type"
+                onChange={handleFormChange}
+                className="p-[0.5rem] border border-gray-300"
+              />
+              <button
+                className="bg-blue-400 px-[1rem] my-[1rem] rounded-xl text-[1.5rem]"
+                onClick={addItem}
+              >
+                Add Item
+              </button>
+            </div>
+          </>
+        </Modal>
+
+        <Modal isOpen={openRemove} onClose={() => setOpenRemove(false)}>
+          <>
+            <h1 className="text-[2rem] mb-[1rem]">Remove Items</h1>
+            <div className="flex flex-col space-y-[1rem]">
+              <input
+                name="item"
+                type="text"
+                value={formData.item}
+                placeholder="Item Name"
+                onChange={handleFormChange}
+                className="p-[0.5rem] border border-gray-300"
+              />
+              <input
+                name="quantity"
+                type="number"
+                value={formData.quantity}
+                placeholder="Quantity"
+                onChange={handleFormChange}
+                className="p-[0.5rem] border border-gray-300"
+              />
+              <button
+                className="bg-blue-400 px-[1rem] my-[1rem] rounded-xl text-[1.5rem]"
+                onClick={removeItem}
+              >
+                Remove Item
+              </button>
+            </div>
+          </>
+        </Modal>
       </div>
-
-      <div className="grid grid-cols-3 gap-4 px-10">
-        <div>
-          <h2>Item</h2>
-          {filteredInventory.map((entry) => (
-            <p key={entry.id}>{entry.item}</p>
-          ))}
-        </div>
-        <div>
-          <h2>Quantity</h2>
-          {filteredInventory.map((entry) => (
-            <p key={entry.id}>{entry.quantity}</p>
-          ))}
-        </div>
-        <div>
-          <h2>Type</h2>
-          {filteredInventory.map((entry) => (
-            <p key={entry.id}>{entry.type}</p>
-          ))}
-        </div>
-      </div>
-
-      <Modal isOpen={isAddModalOpen} onClose={() => setAddModalOpen(false)}>
-        <h2>Add Item</h2>
-        <input
-          name="item"
-          value={formData.item}
-          onChange={handleFormChange}
-          placeholder="Item Name"
-          className="input"
-        />
-        <input
-          name="quantity"
-          value={formData.quantity}
-          onChange={handleFormChange}
-          placeholder="Quantity"
-          className="input"
-          type="number"
-        />
-        <input
-          name="type"
-          value={formData.type}
-          onChange={handleFormChange}
-          placeholder="Item Type"
-          className="input"
-        />
-        <button onClick={addItem} className="btn">
-          Save
-        </button>
-      </Modal>
-
-      <Modal
-        isOpen={isRemoveModalOpen}
-        onClose={() => setRemoveModalOpen(false)}
-      >
-        <h2>Remove Item</h2>
-        <input
-          name="item"
-          value={formData.item}
-          onChange={handleFormChange}
-          placeholder="Item Name"
-          className="input"
-        />
-        <input
-          name="quantity"
-          value={formData.quantity}
-          onChange={handleFormChange}
-          placeholder="Quantity"
-          className="input"
-          type="number"
-        />
-        <button onClick={removeItem} className="btn">
-          Remove
-        </button>
-      </Modal>
     </div>
   );
 }
