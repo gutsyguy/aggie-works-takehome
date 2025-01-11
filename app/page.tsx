@@ -11,13 +11,8 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import Modal from "@/components/modal";
-import { Item } from "@/lib/interfaces"; // Assuming `Item` is an interface like below:
-// interface Item {
-//   id: string;
-//   item: string;
-//   quantity: number;
-//   type: string;
-// }
+import { Item } from "@/lib/interfaces"; 
+
 
 export default function Home() {
   const [inventory, setInventory] = useState<Item[]>([]);
